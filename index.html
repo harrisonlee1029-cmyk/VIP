@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STARLUX 星宇航空 - 貴賓室財務數據分析儀表板</title>
+    <!-- Google Fonts -->
+    <link href="https://googleapis.com" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        :root {
+            --bg-dark: #1C1F22;
+            --card-dark: #25292E;
+            --starlux-gold: #D4AF37;
+            --starlux-gold-hover: #F3CD57;
+            --text-light: #E0E0E0;
+            --text-muted: #8E9499;
+            --border-color: #383D44;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            padding: 24px;
+            line-height: 1.6;
+        }
+
+        /* Header 樣式 */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--starlux-gold);
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+        }
+
+        .header-title h1 {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--starlux-gold);
+        }
+
+        .header-title p {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .badge {
+            background-color: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--starlux-gold);
+            color: var(--starlux-gold);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* KPI 卡片區塊 */
+        .kpi-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background-color: var(--card-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--starlux-gold);
+        }
+
+        .kpi-label {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-light);
+        }
+
+        .kpi-value.gold {
+            color: var(--starlux-gold);
+        }
+
+        .kpi-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* 圖表區塊網格 */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 992px) {
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-card {
+            background-color: var(--card-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .chart-card.full-width {
+            grid-column: span 2;
+        }
+
+        @media (max-width: 992px) {
+            .chart-card.full-width {
+                grid-column: span 1;
+            }
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--starlux-gold);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 350px;
+            width: 100%;
+        }
+
+        /* 數據表格區塊 */
+        .table-card {
+            background-color: var(--card-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th {
+            background-color: rgba(212, 175, 55, 0.05);
+            color: var(--starlux-gold);
+            font-weight: 500;
+            padding: 12px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-light);
+        }
+
+        tr:hover td {
+            background-color: rgba(255,255,255,0.02);
+        }
+
+        .text-right {
+            text-align: right;
+        }
+        
+        .highlight-row {
+            background-color: rgba(212, 175, 55, 0.03);
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 頂部標頭 -->
+    <header>
+        <div class="header-title">
+            <h1>STARLUX 貴賓室財務數據分析儀表板</h1>
+            <p>數據範圍：2025 年 1月至 8月 (歷史實際數) • 貨幣單位：新台幣 (TWD)</p>
+        </div>
+        <div class="badge">CEO 審閱版</div>
+    </header>
+
+    <!-- 關鍵指標卡片 -->
+    <div class="kpi-container">
+        <div class="kpi-card">
+            <div class="kpi-label">總營運費用 (1-8月)</div>
+            <div class="kpi-value gold">$75,129,508</div>
+            <div class="kpi-sub">固定成本 + 變動費用加總</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">總服務旅客總人次</div>
+            <div class="kpi-value">54,919</div>
+            <div class="kpi-sub">包含自營與外包溢流人次加總</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">平均每人旅客成本</div>
+            <div class="kpi-value gold">$1,460</div>
+            <div class="kpi-sub">年度累計人均總成本大約值</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">變動費用佔比</div>
+            <div class="kpi-value">63.2%</div>
+            <div class="kpi-sub">分包商、餐飲飲品與雜支費用</div>
+        </div>
+    </div>
+
+    <!-- 圖表區網格 -->
+    <div class="chart-grid">
+        <!-- 1. 逐月花費趨勢圖 (全寬) -->
+        <div class="chart-card full-width">
+            <div class="chart-title">📈 逐月總營運花費分析 (固定成本 vs 變動費用)</div>
+            <div class="chart-wrapper">
+                <canvas id="monthlyCostChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 2. 使用人數 vs 人均成本 雙軸圖 -->
+        <div class="chart-card">
+            <div class="chart-title">👥 旅客人次與每位旅客成本對比趨勢</div>
+            <div class="chart-wrapper">
+                <canvas id="paxCostChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 3. 消費類別比例 圓餅圖 -->
+        <div class="chart-card">
+            <div class="chart-title">🍕 變動費用消費類別結構分析</div>
+            <div class="chart-wrapper">
+                <canvas id="categoryPieChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 數據明細表格 -->
+    <div class="table-card">
+        <div class="chart-title">🗒️ 2025 貴賓室基礎財務數據總覽 (1月 - 8月)</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>摘要項目</th>
+                    <th class="text-right">1月</th>
+                    <th class="text-right">2月</th>
+                    <th class="text-right">3月</th>
+                    <th class="text-right">4月</th>
+                    <th class="text-right">5月</th>
+                    <th class="text-right">6月</th>
+                    <th class="text-right">7月</th>
+                    <th class="text-right">8月</th>
+                    <th class="text-right">累計總額</th>
+                </tr>
+            </thead>
+            <tbody id="financialTableBody">
+                <!-- 由 JavaScript 自動動態注入數據 -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 報表核心邏輯 JavaScript -->
+    <script>
+        // 核心資料庫 (純前端靜態 JSON，數據提煉自原始財務 Excel)
+        const dbData = {
+            months: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月'],
+            pax:,
+            fixedCost:,
+            variableCost:,
+            perPaxCost: [1474.5, 1403.6, 1390.0, 1519.2, 1524.2, 1456.0, 1406.5, 1414.0],
+            // 變動成本細項分類統計 (1-8月總額)
+            categories: {
+                labels: ['分包商與通路費', '精選餐點', '品牌飲品與精選酒品', '客艙及盥洗備品', '雜費與餐具清洗'],
+                values: [48479774, 1494773, 2779777, 687511, 1411513] 
+            }
+        };
+
+        // 渲染明細表格
+        const tableBody = document.getElementById('financialTableBody');
+        
+        function formatNum(num) {
+            return num.toLocaleString('zh-TW', { maximumFractionDigits: 0 });
+        }
+
+        const rows = [
+            { label: '貴賓室總人次 (人次)', data: dbData.pax, isClass: '' },
+            { label: 'T2 貴賓室固定成本 (元)', data: dbData.fixedCost, isClass: '' },
+            { label: 'T2 自營貴賓室變動費用 (元)', data: dbData.variableCost, isClass: '' },
+            { label: '每位旅客總成本 (元/人)', data: dbData.perPaxCost, isClass: 'highlight-row' }
+        ];
+
+        rows.forEach(row => {
+            let html = `<tr class="${row.isClass}"><td>${row.label}</td>`;
+            let sum = 0;
+            row.data.forEach(val => {
+                html += `<th class="text-right" style="color:#E0E0E0; font-weight:normal;">${formatNum(val)}</th>`;
+                sum += val;
+            });
+            // 計算總額或平均
+            let finalCol = row.label.includes('人均') ? formatNum(sum / row.data.length) : formatNum(sum);
